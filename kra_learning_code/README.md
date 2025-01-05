@@ -32,3 +32,6 @@
 
 ## v6 Version
 * Added Vanya and Bernhard resources and animation
+
+## v7 Version
+* Added restart and quit button
