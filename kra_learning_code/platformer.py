@@ -171,7 +171,7 @@ class Player:
         self.index=0
         self.images_right=[]
         self.images_left=[]
-        self.direction=0
+        self.direction=1
         for num in range(1,5):
             img_left=pygame.image.load(f'res/resized_van{num}.png')
             img_left=pygame.transform.scale(img_left,(40,80))
@@ -181,10 +181,13 @@ class Player:
         self.dead_image=pygame.image.load(f'res/ghost.png')
         self.image=self.images_right[self.index]
         self.rect=self.image.get_rect()
-        self.rect.x = x  # Linke Ecke von Player-Rect
-        self.rect.y = y # Linke Ecke von Player-Rect
-        self.vel_y = 0
-        self.vel_x = 300  # Pixel pro Sekunde
+        # Verwende Float-Positionen für präzise Bewegung
+        self.x = float(x)
+        self.y = float(y)
+        self.rect.x = int(self.x)
+        self.rect.y = int(self.y)
+        self.vel_y = 0.0
+        self.vel_x = 300.0  # Pixel pro Sekunde
         self.width=self.image.get_width()
         self.height=self.image.get_height()
 
@@ -248,17 +251,17 @@ class Player:
             # check for collision
             for tile in world.tile_list:
                 #check for collision in x direction
-                if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                if tile[1].colliderect(self.x + dx, self.y, self.width, self.height):
                     dx = 0
                 #check for collision in y direction
-                if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                if tile[1].colliderect(self.x, self.y + dy, self.width, self.height):
                     #check if below the ground i.e. jumping
                     if self.vel_y < 0:
-                        dy = tile[1].bottom - self.rect.top
+                        dy = tile[1].bottom - self.y
                         self.vel_y = 0
                     #check if above the ground i.e. falling
                     elif self.vel_y >= 0:
-                        dy = tile[1].top - self.rect.bottom
+                        dy = tile[1].top - (self.y + self.height)
                         self.vel_y = 0
                         self.in_air = False
 
@@ -272,24 +275,28 @@ class Player:
                 print('collision with lava')
                 game_over = 1
 
-            #update player coordinates
-            self.rect.x += dx
-            self.rect.y += dy
+            #update player coordinates (Float-Positionen)
+            self.x += dx
+            self.y += dy
             
             # Calculate map width based on world_data
             map_width = len(world_data[0]) * tile_size
             
             # Keep player within map boundaries
-            if self.rect.left < 0:
-                self.rect.left = 0
-            if self.rect.right > map_width:
-                self.rect.right = map_width
+            if self.x < 0:
+                self.x = 0
+            if self.x + self.width > map_width:
+                self.x = map_width - self.width
 
             # stop the player from falling below ground
-            if self.rect.bottom > WINDOW_HEIGHT:
-                self.rect.bottom = WINDOW_HEIGHT
-                dy = 0
+            if self.y + self.height > WINDOW_HEIGHT:
+                self.y = WINDOW_HEIGHT - self.height
+                self.vel_y = 0
                 self.in_air = False
+            
+            # Sync rect with float positions for rendering
+            self.rect.x = int(self.x)
+            self.rect.y = int(self.y)
 
         #draw player onto screen
         screen.blit(self.image, (self.rect.x - camera_x, self.rect.y))
