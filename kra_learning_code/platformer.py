@@ -18,17 +18,28 @@ info = pygame.display.Info()
 SCREEN_WIDTH = info.current_w
 SCREEN_HEIGHT = info.current_h
 
-# Berechne Skalierungsfaktor (80% der Bildschirmgröße)
-max_width = int(SCREEN_WIDTH * 0.8)
-max_height = int(SCREEN_HEIGHT * 0.8)
+# Berechne optimale Fenstergröße
+# Maximal 1200x1200, mindestens 600x600
+max_size = min(SCREEN_WIDTH - 100, SCREEN_HEIGHT - 100, 1200)
+min_size = 600
 
-# Behalte Seitenverhältnis bei
-scale_x = max_width / GAME_WIDTH
-scale_y = max_height / GAME_HEIGHT
-scale = min(scale_x, scale_y)
+if GAME_WIDTH > max_size:
+    # Skaliere runter wenn Bildschirm zu klein
+    scale = max_size / GAME_WIDTH
+elif GAME_WIDTH < min_size and SCREEN_WIDTH >= GAME_WIDTH and SCREEN_HEIGHT >= GAME_HEIGHT:
+    # Skaliere hoch wenn Bildschirm groß genug
+    scale = min(1.2, min_size / GAME_WIDTH)
+else:
+    # Verwende 1:1 wenn möglich
+    scale = 1.0
 
 WINDOW_WIDTH = int(GAME_WIDTH * scale)
 WINDOW_HEIGHT = int(GAME_HEIGHT * scale)
+
+# Vollbild-Modus
+is_fullscreen = False
+fullscreen_width = SCREEN_WIDTH
+fullscreen_height = SCREEN_HEIGHT
 
 # Erstelle echtes Fenster und virtuelle Spieloberfläche
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -457,10 +468,35 @@ while game_is_running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             game_is_running=False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_v:
+                # Toggle Vollbild-Modus
+                is_fullscreen = not is_fullscreen
+                if is_fullscreen:
+                    screen = pygame.display.set_mode((fullscreen_width, fullscreen_height), pygame.FULLSCREEN)
+                else:
+                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     # Skaliere die virtuelle Spieloberfläche auf das echte Fenster
-    scaled_surface = pygame.transform.scale(game_surface, (WINDOW_WIDTH, WINDOW_HEIGHT))
-    screen.blit(scaled_surface, (0, 0))
+    current_width = fullscreen_width if is_fullscreen else WINDOW_WIDTH
+    current_height = fullscreen_height if is_fullscreen else WINDOW_HEIGHT
+    
+    # Berechne Skalierung mit Seitenverhältnis für Vollbild
+    if is_fullscreen:
+        scale_x = current_width / GAME_WIDTH
+        scale_y = current_height / GAME_HEIGHT
+        scale_factor = min(scale_x, scale_y)
+        scaled_width = int(GAME_WIDTH * scale_factor)
+        scaled_height = int(GAME_HEIGHT * scale_factor)
+        offset_x = (current_width - scaled_width) // 2
+        offset_y = (current_height - scaled_height) // 2
+        scaled_surface = pygame.transform.scale(game_surface, (scaled_width, scaled_height))
+        screen.fill(BLACK)  # Schwarze Balken
+        screen.blit(scaled_surface, (offset_x, offset_y))
+    else:
+        scaled_surface = pygame.transform.scale(game_surface, (current_width, current_height))
+        screen.blit(scaled_surface, (0, 0))
+    
     pygame.display.update()
 
 pygame.quit()
